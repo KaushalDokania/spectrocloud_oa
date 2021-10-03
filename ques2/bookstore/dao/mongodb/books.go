@@ -7,6 +7,8 @@ import (
 	"log"
 	"math/rand"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type MongoDBBookStoreDAO struct {
@@ -21,16 +23,40 @@ func (store *MongoDBBookStoreDAO) Collection() string {
 }
 
 func (store *MongoDBBookStoreDAO) CreateBook(book models.Book) error {
+	var err error
+
 	rand.Seed(time.Now().UnixNano())
 	id := 1000 + rand.Intn(1000)
 	book.ID = uint64(id)
+
 	db := config.GetMongoDBClient()
 	collection := db.Collection(store.Collection())
 	result, err := collection.InsertOne(context.TODO(), book)
 	if err != nil {
 		return err
 	}
+
 	insertedId := result.InsertedID
 	log.Printf("Created Book with ID: %d", insertedId)
 	return nil
+}
+
+func (store *MongoDBBookStoreDAO) GetBookByTitle(title string) ([]models.Book, error) {
+	var err error
+	db := config.GetMongoDBClient()
+	collection := db.Collection(store.Collection())
+	searchQuery := bson.M{"title": title}
+	log.Println("Finding...")
+	cursor, err := collection.Find(context.Background(), searchQuery)
+
+	if err != nil {
+		return nil, err
+	}
+	log.Println("Finding2...")
+	var books []models.Book
+	if err = cursor.All(context.Background(), &books); err != nil {
+		return nil, err
+	}
+	log.Println("returning...")
+	return books, err
 }
