@@ -14,7 +14,7 @@ type MySqlDB struct {
 	*gorm.DB
 }
 
-var dbConn *MySqlDB
+var mysqlDbConn *MySqlDB
 
 // mysqlstructmap is a map of pools
 func ConfigureMySql() error {
@@ -37,13 +37,13 @@ func ConfigureMySql() error {
 	db.DB().SetMaxOpenConns(constants.MaxOpenConnections)
 	db.DB().SetMaxIdleConns(constants.MaxIdleConnections)
 	db.DB().SetConnMaxLifetime(time.Duration(time.Second * 280))
-	dbConn = &MySqlDB{DB: db}
+	mysqlDbConn = &MySqlDB{db}
 
 	return nil
 }
 
 func GetMysqlClient() *MySqlDB {
-	return dbConn
+	return mysqlDbConn
 }
 
 func getSQLUrl(dbProps map[string]string) string {
