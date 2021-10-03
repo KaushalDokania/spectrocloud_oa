@@ -7,4 +7,3 @@ type Book struct {
 	Author string  `json:"author" bson:"author"`
 	Price  float32 `json:"price" bson:"price"`
 }
-

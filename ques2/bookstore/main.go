@@ -2,9 +2,13 @@ package main
 
 import (
 	"bookstore/config"
+	"bookstore/dao/interfaces"
 	"bookstore/models"
 	"flag"
 	"log"
+
+	mongodbdao "bookstore/dao/mongodb"
+	mysqldao "bookstore/dao/mysql"
 )
 
 var dbEngine string
@@ -16,7 +20,8 @@ func init() {
 	dbEngine = *databasePtr
 }
 
-func configureDatabase(dbEngine string) {
+func configureDatabase(dbEngine string) interfaces.BookStoreDAO {
+	var bookStore interfaces.BookStoreDAO
 	if dbEngine == "mysql" {
 		err := config.ConfigureMySql()
 		if err != nil {
@@ -26,6 +31,7 @@ func configureDatabase(dbEngine string) {
 		db := config.GetMysqlClient()
 		db.AutoMigrate(&models.Book{})
 		log.Println("connected to mysql successfully")
+		bookStore = &mysqldao.MySQLBookStoreDAO{}
 	} else if dbEngine == "mongodb" {
 		err := config.ConfigureMongoDB()
 		if err != nil {
@@ -33,9 +39,11 @@ func configureDatabase(dbEngine string) {
 			panic(err.Error())
 		}
 		log.Println("connected to mongodb successfully")
+		bookStore = &mongodbdao.MongoDBBookStoreDAO{}
 	} else {
 		log.Fatal("ERROR: Unknown database engine")
 	}
+	return bookStore
 }
 
 /*
@@ -45,5 +53,17 @@ func configureDatabase(dbEngine string) {
 */
 func main() {
 	log.Println("Hello World !!")
-	configureDatabase(dbEngine)
+	bs := configureDatabase(dbEngine)
+
+	book1 := models.Book{
+		Isbn:   "isbn1",
+		Title:  "DDIA",
+		Author: "Martin Kleppmann",
+		Price:  1600,
+	}
+	err := bs.CreateBook(book1)
+	if err != nil {
+		log.Printf("Error while creating book %s", err.Error())
+	}
+	log.Println("Record added to database successfully")
 }

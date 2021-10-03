@@ -3,7 +3,6 @@ package config
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -24,7 +23,6 @@ func ConfigureMongoDB() error {
 	}
 
 	connURI := getMongoDBConnString(bookStoreDBProps)
-	log.Println("connURI: ", connURI)
 	clientOptions := options.Client().ApplyURI(connURI)
 	ctx := context.Background()
 	client, err := mongo.Connect(ctx, clientOptions)
