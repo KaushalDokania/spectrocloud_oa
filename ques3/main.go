@@ -18,7 +18,7 @@ Implement the above mentioned logic with proper error handling and write Go unit
 package main
 
 import (
-	"fmt"
+	"log"
 	"math/rand"
 	"time"
 )
@@ -30,7 +30,6 @@ type Task struct {
 }
 
 type MyTask struct {
-	// started int64
 	started time.Time
 	task    *Task
 }
@@ -38,11 +37,10 @@ type MyTask struct {
 const statusCompleted string = "completed"
 const statusFailed string = "failed"
 const statusTimeout string = "timeout"
+const timeout time.Duration = time.Duration(20000 * time.Millisecond)
 
-func main() {
-	fmt.Println("Hello World!!")
-
-	tasks := []Task{
+func getDummyTasks() []Task {
+	return []Task{
 		{Id: "101", IsCompleted: false, Status: statusFailed},
 		{Id: "102", IsCompleted: false, Status: statusFailed},
 		{Id: "103", IsCompleted: false, Status: statusFailed},
@@ -53,60 +51,55 @@ func main() {
 		{Id: "108", IsCompleted: false, Status: statusFailed},
 		{Id: "109", IsCompleted: false, Status: statusFailed},
 	}
+}
+func main() {
+	tasks := getDummyTasks()
 
 	go func(tasks []Task) {
 		var indices []int
 		for {
 			idx := rand.Intn(len(tasks))
 			indices = append(indices, idx)
-			fmt.Printf("\nrand index: %d", idx)
+			log.Printf("rand index: %d", idx)
 			if !tasks[idx].IsCompleted {
-				fmt.Printf("\ncompleting the task: %s", tasks[idx].Id)
+				log.Printf("completing the task: %s", tasks[idx].Id)
 				tasks[idx].IsCompleted = true
 			}
 			time.Sleep(2 * time.Second)
 		}
 	}(tasks)
 
-	// q := make(chan *Task, 10)
 	q := make(chan *MyTask, 10)
 
 	// submitting all tasks to queue
+	log.Println("main: Adding tasks to the queue")
 	for index, _ := range tasks {
-		fmt.Println("main: Adding task:", tasks[index].Id, " to queue")
-		// q <- &tasks[index]
-		// time.Now().Unix()
-		// q <- &MyTask{started: time.Now().UnixNano() / int64(time.Millisecond), task: &tasks[index]}
+
 		q <- &MyTask{started: time.Now(), task: &tasks[index]}
 	}
+	log.Println("main: Tasks added to the queue, now processing te queue")
 
-	count := 0
-	var list []string
-
+	var completedTasks []string
 	for len(q) > 0 {
 		mt := <-q
 		t := mt.task
 		if t.IsCompleted {
 			t.Status = statusCompleted
-			list = append(list, t.Id)
-			fmt.Printf("\ntask: %s is [completed](Tasks completed: %v), len(queue): %d", t.Id, list, len(q))
-			count++
+			completedTasks = append(completedTasks, t.Id)
+			log.Printf("task: %s is [completed](Tasks completed: %v), len(queue): %d", t.Id, completedTasks, len(q))
 		} else {
-			now := time.Now()
-			if now.Sub(mt.started) > time.Duration(5000*time.Millisecond) {
-				// if now-mt.started > 5000 {
-				fmt.Printf("discarding id: %s", t.Id)
+			if time.Now().Sub(mt.started) > timeout {
+				log.Printf("TIMEOUT: discarding id: %s", t.Id)
 				t.Status = statusTimeout
 				continue
 			}
 			q <- mt // push back if not completed
-			fmt.Printf("\ntask: %s is NOT completed, pushing back to queue...(Tasks completed: %v), len(queue): %d", t.Id, list, len(q))
+			log.Printf("task: %s is NOT completed, pushing back to queue...(Tasks completed: %v), len(queue): %d", t.Id, completedTasks, len(q))
 		}
-		fmt.Println()
-		// time.Sleep(1 * time.Second)
+		log.Println()
 		time.Sleep(500 * time.Millisecond)
 	}
 
-	fmt.Printf("\n%v", tasks)
-	fmt.Println("\nThank you!!")
+	log.Printf("%+v", tasks)
+	log.Println("Thank you!!")
 }
