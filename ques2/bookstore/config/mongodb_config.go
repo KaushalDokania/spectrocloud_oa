@@ -18,7 +18,7 @@ func ConfigureMongoDB() error {
 	bookStoreDBProps := map[string]string{
 		"database": "bookstore",
 		"username": "kaushal",
-		"password": "password_mongo",
+		"password": "password_mongo", // hardcoded password
 		"host":     "cluster0.mevyk.mongodb.net",
 	}
 

@@ -24,7 +24,7 @@ func ConfigureMySql() error {
 	bookStoreMasterDBProps := map[string]string{
 		"database": "bookstore",
 		"username": "kaushal",
-		"password": "password",
+		"password": "password", // hardcoded password
 		"host":     "localhost",
 		"port":     "3306",
 	}

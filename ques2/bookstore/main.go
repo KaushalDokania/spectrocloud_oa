@@ -52,20 +52,19 @@ func configureDatabase(dbEngine string) interfaces.BookStoreDAO {
 	go run main.go -database mongodb
 */
 func main() {
-	log.Println("Hello World !!")
 	bs := configureDatabase(dbEngine)
 
-	// book1 := models.Book{
-	// 	Isbn:   "isbn1",
-	// 	Title:  "DDIA",
-	// 	Author: "Martin Kleppmann",
-	// 	Price:  1600,
-	// }
-	// err := bs.CreateBook(book1)
-	// if err != nil {
-	// 	log.Printf("Error while creating book %s", err.Error())
-	// }
-	// log.Println("Record added to database successfully")
+	book1 := models.Book{
+		Isbn:   "isbn1",
+		Title:  "DDIA",
+		Author: "Martin Kleppmann",
+		Price:  1600,
+	}
+	err := bs.CreateBook(book1)
+	if err != nil {
+		log.Printf("Error while creating book %s", err.Error())
+	}
+	log.Println("Record added to database successfully")
 
 	log.Println("Searching booko with title DDIA")
 	books, err := bs.GetBookByTitle("DDIA")

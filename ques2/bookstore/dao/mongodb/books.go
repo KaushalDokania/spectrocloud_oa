@@ -46,17 +46,14 @@ func (store *MongoDBBookStoreDAO) GetBookByTitle(title string) ([]models.Book, e
 	db := config.GetMongoDBClient()
 	collection := db.Collection(store.Collection())
 	searchQuery := bson.M{"title": title}
-	log.Println("Finding...")
 	cursor, err := collection.Find(context.Background(), searchQuery)
 
 	if err != nil {
 		return nil, err
 	}
-	log.Println("Finding2...")
 	var books []models.Book
 	if err = cursor.All(context.Background(), &books); err != nil {
 		return nil, err
 	}
-	log.Println("returning...")
 	return books, err
 }
