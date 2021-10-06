@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"log"
-	"sync"
 )
 
 type Response interface {
@@ -20,7 +19,6 @@ type Result struct {
 }
 
 type CalcResponse struct {
-	wg               sync.WaitGroup
 	resultChannel    chan Result
 	errorChannel     chan error
 	completedChannel chan bool
@@ -57,7 +55,6 @@ func (op *Operation) execute() *CalcResponse {
 		completedChannel: make(chan bool),
 		results:          []Result{},
 	}
-	resp.wg.Add(1)
 
 	log.Println("calling goroutine for calculation...")
 	go func(resp *CalcResponse) {
@@ -67,13 +64,8 @@ func (op *Operation) execute() *CalcResponse {
 				resp.errorChannel <- err
 			}
 			log.Println("pushing", res, "to channel")
-			// resp.wg.Add(1)
 			resp.resultChannel <- *res
-			log.Println("pushed", res, "to channel, len: ", len(resp.resultChannel))
-			// resp.addResult(*res)
 		}
-		// log.Println("iterated all inputs..")
-		// time.Sleep(5 * time.Second)
 		close(resp.resultChannel)
 		log.Println("pushing true to completedChannel.., len: ", len(resp.resultChannel))
 		resp.completedChannel <- true
@@ -102,34 +94,17 @@ func (r *CalcResponse) setCompleted(val bool) {
 }
 
 func (resp *CalcResponse) waitTillComplete() {
-	// var wg sync.WaitGroup
-	// ctx := context.Background()
-	// ctx, cancel := context.WithCancel(ctx)
-
-	// wg.Add(1)
 	for {
 		res, ok := <-resp.resultChannel
+		log.Println("received ", res, " adding to response")
+		resp.addResult(res)
 		if ok == false { // channel is closed
-			log.Println("received ", res, " adding to response")
-			resp.addResult(res)
 			log.Println("--> channel was closed, so this was last result, so returning")
 			break
 		}
-		// wg.Add(1)
-		log.Println("received ", res, " adding to response")
-		resp.addResult(res)
-		// <- ctx.Done()
-
-		// defer wg.Done()
 	}
-	// resp.wg.Wait()
-	// resp.setCompleted(<-resp.completedChannel)
-
-	// time.Sleep(10 * time.Second)
 	log.Println("waiting for completion..., len: ", len(resp.completedChannel))
-	<-resp.completedChannel
-	// cancel()
-	log.Println("completed, len: ", len(resp.completedChannel))
+	resp.setCompleted(<-resp.completedChannel)
 }
 
 func (resp *CalcResponse) subscribe(fnAdd func(Result), fnErr func(error), fnDone func(bool)) {
@@ -153,12 +128,11 @@ func (resp *CalcResponse) subscribe(fnAdd func(Result), fnErr func(error), fnDon
 
 func main() {
 	log.Println("Hello World!!")
-	op := Operation{num: 10, input: []int{10, 20, 45, 46}}
+	op := Operation{num: 10, input: []int{10, 20, 45}}
 	resp := op.execute()
-	log.Println(resp)
+	log.Printf("%+v", resp)
 	resp.waitTillComplete()
 	// resp.subscribe(resp.addResult, resp.setError, resp.setCompleted)
-	log.Println(resp)
-
+	log.Printf("%+v", resp)
 	// ch := make(chan Result, 10)
 }
