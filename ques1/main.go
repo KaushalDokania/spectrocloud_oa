@@ -61,10 +61,12 @@ func (op *Operation) execute() *CalcResponse {
 		for _, v := range op.input {
 			res, err := calc(v)
 			if err != nil {
+				log.Println("--> TIMEOUT occured..")
 				resp.errorChannel <- err
+			} else {
+				log.Println("pushing", res, "to channel")
+				resp.resultChannel <- *res
 			}
-			log.Println("pushing", res, "to channel")
-			resp.resultChannel <- *res
 		}
 		close(resp.resultChannel)
 		log.Println("pushing true to completedChannel.., len: ", len(resp.resultChannel))
@@ -94,12 +96,24 @@ func (r *CalcResponse) setCompleted(val bool) {
 }
 
 func (resp *CalcResponse) waitTillComplete() {
+	done := false
 	for {
-		res, ok := <-resp.resultChannel
-		log.Println("received ", res, " adding to response")
-		resp.addResult(res)
-		if ok == false { // channel is closed
-			log.Println("--> channel was closed, so this was last result, so returning")
+		select {
+		case res, ok := <-resp.resultChannel:
+			{
+				log.Println("received ", res, " adding to response")
+				resp.addResult(res)
+				if ok == false { // channel is closed
+					log.Println("--> channel was closed, so this was last result, so returning")
+					done = true
+					break
+				}
+			}
+		case err, _ := <-resp.errorChannel:
+			resp.setError(err)
+		}
+
+		if done {
 			break
 		}
 	}
@@ -128,7 +142,7 @@ func (resp *CalcResponse) subscribe(fnAdd func(Result), fnErr func(error), fnDon
 
 func main() {
 	log.Println("Hello World!!")
-	op := Operation{num: 10, input: []int{10, 20, 45}}
+	op := Operation{num: 10, input: []int{10, 20, 45, 50}}
 	resp := op.execute()
 	log.Printf("%+v", resp)
 	resp.waitTillComplete()
