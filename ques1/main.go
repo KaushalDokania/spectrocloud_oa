@@ -96,22 +96,22 @@ func (r *CalcResponse) setCompleted(val bool) {
 	// r.completedChannel <- true
 }
 
-func (resp *CalcResponse) waitTillComplete() {
+func (resp *CalcResponse) executionHandler(fnAdd func(Result), fnErr func(error), fnDone func(bool)) {
 	done := false
 	for {
 		select {
 		case res, ok := <-resp.resultChannel:
 			{
 				log.Println("received ", res, " adding to response")
-				resp.addResult(res)
+				fnAdd(res)
 				if ok == false { // channel is closed
-					log.Println("--> channel was closed, so this was last result, so returning")
+					log.Println("--> channel was closed, hence this was last result, so returning")
 					done = true
 					break
 				}
 			}
 		case err, _ := <-resp.errorChannel:
-			resp.setError(err)
+			fnErr(err)
 		}
 
 		if done {
@@ -119,35 +119,16 @@ func (resp *CalcResponse) waitTillComplete() {
 		}
 	}
 	log.Println("waiting for completion..., len: ", len(resp.completedChannel))
-	resp.setCompleted(<-resp.completedChannel)
+	fnDone(<-resp.completedChannel)
+
+}
+
+func (resp *CalcResponse) waitTillComplete() {
+	resp.executionHandler(resp.addResult, resp.setError, resp.setCompleted)
 }
 
 func (resp *CalcResponse) subscribe(fnAdd func(Result), fnErr func(error), fnDone func(bool)) {
-	go func() {
-		done := false
-		for {
-			select {
-			case res, ok := <-resp.resultChannel:
-				{
-					log.Println("received ", res, " adding to response")
-					fnAdd(res)
-					if ok == false { // channel is closed
-						log.Println("--> channel was closed, so this was last result, so returning")
-						done = true
-						break
-					}
-				}
-			case err, _ := <-resp.errorChannel:
-				fnErr(err)
-			}
-
-			if done {
-				break
-			}
-		}
-		log.Println("waiting for completion..., len: ", len(resp.completedChannel))
-		fnDone(<-resp.completedChannel)
-	}()
+	go resp.executionHandler(fnAdd, fnErr, fnDone)
 }
 
 func main() {
