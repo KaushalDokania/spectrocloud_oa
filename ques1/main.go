@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"log"
+	"time"
 )
 
 type Response interface {
@@ -123,30 +124,44 @@ func (resp *CalcResponse) waitTillComplete() {
 
 func (resp *CalcResponse) subscribe(fnAdd func(Result), fnErr func(error), fnDone func(bool)) {
 	go func() {
+		done := false
 		for {
-			res := <-resp.resultChannel
-			log.Println("received new result, adding to response")
-			fnAdd(res)
-		}
-	}()
+			select {
+			case res, ok := <-resp.resultChannel:
+				{
+					log.Println("received ", res, " adding to response")
+					fnAdd(res)
+					if ok == false { // channel is closed
+						log.Println("--> channel was closed, so this was last result, so returning")
+						done = true
+						break
+					}
+				}
+			case err, _ := <-resp.errorChannel:
+				fnErr(err)
+			}
 
-	go func() {
-		for {
-			err := <-resp.errorChannel
-			fnErr(err)
+			if done {
+				break
+			}
 		}
+		log.Println("waiting for completion..., len: ", len(resp.completedChannel))
+		fnDone(<-resp.completedChannel)
 	}()
-
-	fnDone(<-resp.completedChannel)
 }
 
 func main() {
 	log.Println("Hello World!!")
-	op := Operation{num: 10, input: []int{10, 20, 45, 50}}
+	op := Operation{num: 10, input: []int{10, 20, 45}}
 	resp := op.execute()
 	log.Printf("%+v", resp)
-	resp.waitTillComplete()
-	// resp.subscribe(resp.addResult, resp.setError, resp.setCompleted)
+	// resp.waitTillComplete()
+	resp.subscribe(resp.addResult, resp.setError, resp.setCompleted)
+	log.Println("-> Subscribed...")
+	for resp.isCompleted == false {
+		log.Println("listening to results ...")
+		time.Sleep(2 * time.Second)
+	}
 	log.Printf("%+v", resp)
 	// ch := make(chan Result, 10)
 }
