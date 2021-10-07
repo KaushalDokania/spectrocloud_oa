@@ -1,3 +1,16 @@
+/*
+
+Solution Overview:
+In this program, we have a Response interface which is implemented by CalcResponse struct.
+Now, the CalcResponse is will have the isCompleted boolean, errorMsg string
+and an array of Result(which is a basic struct with input and output value).
+
+Here, we are using finb(n), which calculates the fibonacci series, as the operation.
+For error cases: we assume, any n >= 50 returns "TIMEOUT" error
+and the same will be set to the errorMsg string of the CalcResponse object.
+
+*/
+
 package main
 
 import (
@@ -144,5 +157,4 @@ func main() {
 		time.Sleep(2 * time.Second)
 	}
 	log.Printf("%+v", resp)
-	// ch := make(chan Result, 10)
 }
